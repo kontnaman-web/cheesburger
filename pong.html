@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Pong</title>
+</head>
+<body>
+
+<canvas id="game" width="500" height="300"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// Schläger
+let paddleLeft = { x: 10, y: 120, w: 10, h: 60 };
+let paddleRight = { x: 480, y: 120, w: 10, h: 60 };
+
+// Ball
+let ball = { x: 250, y: 150, r: 6, vx: 4, vy: 4 };
+
+// Punkte
+let scoreLeft = 0;
+let scoreRight = 0;
+
+// Steuerung
+document.addEventListener("keydown", e => {
+  if (e.key === "w") paddleLeft.y -= 15;
+  if (e.key === "s") paddleLeft.y += 15;
+});
+
+function resetBall() {
+  ball.x = 250;
+  ball.y = 150;
+  ball.vx = -ball.vx;
+}
+
+// Gegner-KI
+function ai() {
+  if (ball.y > paddleRight.y + paddleRight.h / 2) {
+    paddleRight.y += 3;
+  } else {
+    paddleRight.y -= 3;
+  }
+}
+
+// Kollision Paddle
+function hit(p, b) {
+  return (
+    b.x - b.r < p.x + p.w &&
+    b.x + b.r > p.x &&
+    b.y > p.y &&
+    b.y < p.y + p.h
+  );
+}
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Ball bewegen
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Wand
+  if (ball.y < 0 || ball.y > canvas.height) ball.vy *= -1;
+
+  // Paddle-Kollision
+  if (hit(paddleLeft, ball) || hit(paddleRight, ball)) {
+    ball.vx *= -1;
+  }
+
+  // Punkt
+  if (ball.x < 0) {
+    scoreRight++;
+    resetBall();
+  }
+  if (ball.x > canvas.width) {
+    scoreLeft++;
+    resetBall();
+  }
+
+  // KI
+  ai();
+
+  // Zeichnen
+  ctx.fillStyle = "black";
+  ctx.fillRect(paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h);
+  ctx.fillRect(paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h);
+
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = "20px Arial";
+  ctx.fillText(scoreLeft, 200, 30);
+  ctx.fillText(scoreRight, 300, 30);
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>

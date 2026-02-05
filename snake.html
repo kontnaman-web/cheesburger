@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Snake Game</title>
+</head>
+<body>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const grid = 20;
+let snake = [{ x: 200, y: 200 }];
+let dx = grid;
+let dy = 0;
+
+let food = {
+  x: Math.floor(Math.random() * 20) * grid,
+  y: Math.floor(Math.random() * 20) * grid
+};
+
+let score = 0;
+let alive = true;
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" && dy === 0) {
+    dx = 0; dy = -grid;
+  }
+  if (e.key === "ArrowDown" && dy === 0) {
+    dx = 0; dy = grid;
+  }
+  if (e.key === "ArrowLeft" && dx === 0) {
+    dx = -grid; dy = 0;
+  }
+  if (e.key === "ArrowRight" && dx === 0) {
+    dx = grid; dy = 0;
+  }
+});
+
+function gameLoop() {
+  if (!alive) return;
+
+  setTimeout(() => {
+    ctx.clearRect(0, 0, 400, 400);
+
+    const head = {
+      x: snake[0].x + dx,
+      y: snake[0].y + dy
+    };
+
+    // Wand-Kollision
+    if (
+      head.x < 0 || head.y < 0 ||
+      head.x >= 400 || head.y >= 400
+    ) {
+      alive = false;
+    }
+
+    // Selbst-Kollision
+    snake.forEach(part => {
+      if (head.x === part.x && head.y === part.y) {
+        alive = false;
+      }
+    });
+
+    snake.unshift(head);
+
+    // Essen
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      food = {
+        x: Math.floor(Math.random() * 20) * grid,
+        y: Math.floor(Math.random() * 20) * grid
+      };
+    } else {
+      snake.pop();
+    }
+
+    // Zeichnen
+    ctx.fillStyle = "green";
+    snake.forEach(part => {
+      ctx.fillRect(part.x, part.y, grid - 1, grid - 1);
+    });
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(food.x, food.y, grid, grid);
+
+    ctx.fillStyle = "black";
+    ctx.font = "18px Arial";
+    ctx.fillText("Score: " + score, 10, 20);
+
+    if (!alive) {
+      ctx.fillText("GAME OVER - Seite neu laden", 70, 200);
+      return;
+    }
+
+    gameLoop();
+  }, 120);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>

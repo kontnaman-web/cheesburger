@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Fang den Button</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            background-color: #f0f0f0;
+        }
+
+        #spielfeld {
+            width: 400px;
+            height: 400px;
+            border: 3px solid black;
+            margin: 20px auto;
+            position: relative;
+            background-color: white;
+        }
+
+        #button {
+            position: absolute;
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #punkte {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Fang den Button!</h1>
+    <p id="punkte">Punkte: 0</p>
+
+    <div id="spielfeld">
+        <button id="button">Fang mich!</button>
+    </div>
+
+    <script>
+        let punkte = 0;
+        const button = document.getElementById("button");
+        const feld = document.getElementById("spielfeld");
+
+        function bewegeButton() {
+            const maxX = feld.clientWidth - button.offsetWidth;
+            const maxY = feld.clientHeight - button.offsetHeight;
+
+            const x = Math.random() * maxX;
+            const y = Math.random() * maxY;
+
+            button.style.left = x + "px";
+            button.style.top = y + "px";
+        }
+
+        button.addEventListener("click", () => {
+            punkte++;
+            document.getElementById("punkte").textContent = "Punkte: " + punkte;
+            bewegeButton();
+        });
+
+        bewegeButton();
+    </script>
+
+</body>
+</html>

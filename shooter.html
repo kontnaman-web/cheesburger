@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Shooter</title>
+</head>
+<body>
+
+<canvas id="game" width="500" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x: 230, y: 350, w: 40, h: 20 };
+let bullets = [];
+let enemies = [];
+let score = 0;
+let gameOver = false;
+
+// Steuerung
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function shoot() {
+  bullets.push({ x: player.x + player.w / 2 - 2, y: player.y });
+}
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && !gameOver) shoot();
+  if (e.code === "Space" && gameOver) reset();
+});
+
+function reset() {
+  bullets = [];
+  enemies = [];
+  score = 0;
+  gameOver = false;
+  loop();
+}
+
+function spawnEnemy() {
+  enemies.push({
+    x: Math.random() * (canvas.width - 30),
+    y: -30,
+    w: 30,
+    h: 20
+  });
+}
+
+function collision(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+function loop() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Spieler bewegen
+  if (keys["ArrowLeft"] && player.x > 0) player.x -= 5;
+  if (keys["ArrowRight"] && player.x < canvas.width - player.w) player.x += 5;
+
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Schüsse
+  ctx.fillStyle = "green";
+  bullets.forEach(b => {
+    b.y -= 7;
+    ctx.fillRect(b.x, b.y, 4, 10);
+  });
+  bullets = bullets.filter(b => b.y > 0);
+
+  // Gegner
+  if (Math.random() < 0.02) spawnEnemy();
+
+  ctx.fillStyle = "red";
+  enemies.forEach(e => {
+    e.y += 2;
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+
+    if (collision(player, e)) {
+      gameOver = true;
+    }
+
+    bullets.forEach((b, bi) => {
+      if (collision(b, e)) {
+        enemies.splice(enemies.indexOf(e), 1);
+        bullets.splice(bi, 1);
+        score++;
+      }
+    });
+  });
+
+  // Score
+  ctx.fillStyle = "black";
+  ctx.font = "18px Arial";
+  ctx.fillText("Score: " + score, 10, 20);
+
+  if (gameOver) {
+    ctx.fillText("GAME OVER - SPACE für Neustart", 110, 200);
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>

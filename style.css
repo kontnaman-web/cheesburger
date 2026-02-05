@@ -1,0 +1,13 @@
+body {
+    text-align: center;
+    font-family: Arial;
+    background-color: #f0f0f0;
+}
+div {
+    margin: 20px;
+}
+a {
+    font-size: 20px;
+    text-decoration: none;
+    color: blue;
+}

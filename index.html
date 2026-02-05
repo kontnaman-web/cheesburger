@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Meine Spiele-Webseite</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background-color: #f0f0f0;
+}
+
+.game {
+    background: white;
+    margin: 30px auto;
+    padding: 20px;
+    width: 400px;
+    border-radius: 10px;
+    border: 2px solid black;
+}
+
+button {
+    font-size: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎮 Meine Spiele</h1>
+<a href="snake.html">Snake Game</a>
+<a href="runner.html">Endless Runner</a>
+<a href="pong.html">Pong</a>
+<a href="shooter.html">Space Shooter</a>
+<a href="jumper.html">Jump Game (Mario Style)</a>
+
+<!-- ===================== -->
+<!-- SPIEL 1: KLICK-SPIEL -->
+<!-- ===================== -->
+<div class="game">
+    <h2>Klick-Spiel</h2>
+    <p id="punkte1">Punkte: 0</p>
+    <button onclick="klick()">Klick mich!</button>
+</div>
+
+<!-- ========================= -->
+<!-- SPIEL 2: FANG DEN BUTTON -->
+<!-- ========================= -->
+<div class="game">
+    <h2>Fang den Button</h2>
+    <p id="punkte2">Punkte: 0</p>
+
+    <div id="feld" style="width:300px;height:300px;border:2px solid black;margin:auto;position:relative;">
+        <button id="springButton" style="position:absolute;">Fang mich</button>
+    </div>
+</div>
+
+<script>
+/* Klick-Spiel */
+let punkte1 = 0;
+function klick() {
+    punkte1++;
+    document.getElementById("punkte1").innerText = "Punkte: " + punkte1;
+}
+
+/* Fang-den-Button-Spiel */
+let punkte2 = 0;
+const btn = document.getElementById("springButton");
+const feld = document.getElementById("feld");
+
+btn.onclick = () => {
+    punkte2++;
+    document.getElementById("punkte2").innerText = "Punkte: " + punkte2;
+
+    const x = Math.random() * (feld.clientWidth - btn.offsetWidth);
+    const y = Math.random() * (feld.clientHeight - btn.offsetHeight);
+    btn.style.left = x + "px";
+    btn.style.top = y + "px";
+};
+</script>
+<a href="dodge.html">Dodge Game</a>
+</body><a href="flappy.html">Flappy Game</a>
+
+</html>
