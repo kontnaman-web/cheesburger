@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Neon Click</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    overflow: hidden;
+    color: white;
+    font-family: Arial;
+  }
+  #score {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div id="score">Score: 0</div>
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let particles = [];
+let score = 0;
+
+addEventListener("resize", () => {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+});
+
+addEventListener("click", e => {
+  score++;
+  document.getElementById("score").innerText = "Score: " + score;
+
+  for (let i = 0; i < 30; i++) {
+    particles.push({
+      x: e.clientX,
+      y: e.clientY,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: 60,
+      color: `hsl(${Math.random() * 360}, 100%, 50%)`
+    });
+  }
+});
+
+function loop() {
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
