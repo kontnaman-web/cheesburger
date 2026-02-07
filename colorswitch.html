@@ -17,135 +17,78 @@
 
 
 <script>
+<<script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-ctx.fillStyle = "white";
-ctx.font = "30px Arial";
-ctx.fillText("Canvas OK 👍", 50, 100);
 
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let ball = {
-  x: 200,
-  y: 400,
-  r: 10,
-  vy: 0,
-  color: randomColor()
+let player = {
+  x: canvas.width / 2,
+  y: canvas.height - 60,
+  size: 30
 };
 
-let gravity = 0.5;
-let jump = -8;
+let obstacles = [];
 let score = 0;
-let gameOver = false;
 
-let obstacle = {
-  x: 200,
-  y: 200,
-  r: 80,
-  angle: 0
-};
-
-const colors = ["red", "yellow", "blue", "purple"];
-
-function randomColor() {
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-document.addEventListener("click", play);
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") play();
+document.addEventListener("mousemove", e => {
+  player.x = e.clientX;
 });
 
-function play() {
-  if (gameOver) {
-    reset();
-  } else {
-    ball.vy = jump;
-  }
-}
-
-function reset() {
-  ball.y = 400;
-  ball.vy = 0;
-  ball.color = randomColor();
-  obstacle.y = 200;
-  score = 0;
-  gameOver = false;
-  loop();
-}
-
 function loop() {
-  if (gameOver) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Player
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x - player.size/2, player.y, player.size, player.size);
 
-  // Ball
-  ball.vy += gravity;
-  ball.y += ball.vy;
-
-  ctx.fillStyle = ball.color;
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Obstacle
-  obstacle.angle += 0.02;
-  let slice = Math.PI / 2;
-
-  for (let i = 0; i < 4; i++) {
-    ctx.strokeStyle = colors[i];
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.arc(
-      obstacle.x,
-      obstacle.y,
-      obstacle.r,
-      obstacle.angle + i * slice,
-      obstacle.angle + (i + 1) * slice
-    );
-    ctx.stroke();
+  // Obstacles
+  if (Math.random() < 0.03) {
+    obstacles.push({
+      x: Math.random() * canvas.width,
+      y: -20,
+      size: 20
+    });
   }
 
-  // Collision
-  let dy = ball.y - obstacle.y;
-  if (Math.abs(dy) < ball.r + obstacle.r &&
-      Math.abs(dy) > obstacle.r - 10) {
+  ctx.fillStyle = "red";
+  for (let i = 0; i < obstacles.length; i++) {
+    let o = obstacles[i];
+    o.y += 5;
+    ctx.fillRect(o.x, o.y, o.size, o.size);
 
-    let angle = Math.atan2(ball.y - obstacle.y, ball.x - obstacle.x);
-    let index = Math.floor(
-      ((angle - obstacle.angle + Math.PI * 2) % (Math.PI * 2)) / slice
-    );
-
-    if (colors[index] !== ball.color) {
-      gameOver = true;
+    // Collision
+    if (
+      o.x < player.x + player.size &&
+      o.x + o.size > player.x - player.size &&
+      o.y < player.y + player.size &&
+      o.y + o.size > player.y
+    ) {
+      alert("Game Over! Score: " + score);
+      score = 0;
+      obstacles = [];
+      return;
     }
-  }
 
-  // Passed obstacle
-  if (ball.y < obstacle.y - obstacle.r) {
-    score++;
-    obstacle.y = ball.y - 200;
-    ball.color = randomColor();
+    if (o.y > canvas.height) {
+      obstacles.splice(i, 1);
+      score++;
+    }
   }
 
   // Score
   ctx.fillStyle = "white";
   ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 10, 30);
-
-  if (ball.y > canvas.height) {
-    gameOver = true;
-  }
-
-  if (gameOver) {
-    ctx.fillText("GAME OVER - Klick / Space", 80, 300);
-    return;
-  }
+  ctx.fillText("Score: " + score, 20, 30);
 
   requestAnimationFrame(loop);
 }
 
 loop();
 </script>
+/script>
 
 </body>
 </html>
