@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kong Tofu vs Chezz Burgers – Fire Shooter</title>
+  <style>
+    body { margin:0; background:linear-gradient(#ff6b35, #f7931e, #ffaa00); font-family:Arial, sans-serif; color:#fff; overflow:hidden; }
+    canvas { display:block; margin:0 auto; background:linear-gradient(#1a1a2e, #16213e); border:3px solid #ffd700; box-shadow:0 0 50px #ff4500; }
+    #ui {
+      position:absolute; top:10px; left:10px; right:10px; z-index:10;
+      display:flex; justify-content:space-between; font-size:28px; text-shadow:0 0 10px #fff; pointer-events:none;
+    }
+    #lives { color:#ff1493; }
+    #wave { color:#00ff88; }
+    #gameOver {
+      position:absolute; inset:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(10px);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      font-size:52px; color:#ffd700; text-shadow:0 0 20px #ff4500; pointer-events:all; display:none;
+    }
+    button { 
+      font-size:36px; padding:20px 50px; margin:20px; cursor:pointer; 
+      background:linear-gradient(#ff4500, #ff6347); border:none; border-radius:15px; 
+      color:#fff; text-shadow:0 0 10px #000; box-shadow:0 0 30px #ff4500; transition:transform 0.2s;
+    }
+    button:hover { transform:scale(1.1); }
+    button:active { transform:scale(0.95); }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div id="lives">❤️❤️❤️</div>
+  <div>Score: <span id="score">0</span></div>
+  <div id="wave">Wave: 1</div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="gameOver">
+  <div>KONG TOFU WINS? Nah... GAME OVER 🔥</div>
+  <div>Final Score: <span id="finalScore">0</span></div>
+  <button onclick="restart()">REVENGE TIME!</button>
+</div>
+
+<script>
+// === Kong Tofu vs Chezz Burgers – EXTRA FIRE SHOOTER ===
+// Controls: Pfeiltasten / A D = move | Space / Click / Tap = SHOOT | Mobile Swipe
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const waveEl = document.getElementById('wave');
+const gameOverEl = document.getElementById('gameOver');
+const finalScoreEl = document.getElementById('finalScore');
+
+canvas.width = 500;
+canvas.height = 800;
+
+let score = 0;
+let highscore = localStorage.getItem('kongTofuHighscore') || 0;
+let lives = 3;
+let wave = 1;
+let gameRunning = true;
+
+let player = { x: canvas.width/2 - 40, y: canvas.height - 120, width: 80, height: 80, speed: 8 };
+let bullets = [];
+let enemies = [];
+let particles = [];
+let powerups = [];
+let keys = {};
+let lastShot = 0;
+let shotDelay = 200;
+let rapidFire = false;
+
+// Particles for FIRE effects
+function createParticles(x, y, color, count = 15) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10 - 2,
+      life: 1,
+      decay: 0.03,
+      size: Math.random() * 6 + 2,
+      color
+    });
+  }
+}
+
+// Input
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+canvas.addEventListener('click', shoot);
+canvas.addEventListener('touchstart', shoot);
+
+// Swipe for mobile move
+let touchStartX = 0;
+canvas.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+canvas.addEventListener('touchmove', e => {
+  let diff = e.touches[0].clientX - touchStartX;
+  if (Math.abs(diff) > 30) {
+    player.x += diff > 0 ? player.speed : -player.speed;
+    touchStartX = e.touches[0].clientX;
+  }
+});
+
+function shoot() {
+  if (Date.now() - lastShot < shotDelay || !gameRunning) return;
+  bullets.push({
+    x: player.x + player.width/2 - 5,
+    y: player.y,
+    width: 10,
+    height: 25,
+    speed: 12,
+    trail: []
+  });
+  lastShot = Date.now();
+  // Shoot sound vibe (simple beep)
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioCtx.createOscillator();
+  oscillator.connect(audioCtx.destination);
+  oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + 0.1);
+}
+
+function update() {
+  if (!gameRunning) return;
+
+  score += 0.2;
+  scoreEl.textContent = Math.floor(score);
+
+  // Player move
+  if (keys['arrowleft'] || keys['a']) player.x = Math.max(0, player.x - player.speed);
+  if (keys['arrowright'] || keys['d']) player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+  if (keys[' '] || keys['space']) shoot();
+
+  // Bullets
+  bullets.forEach((b, i) => {
+    b.y -= b.speed;
+    b.trail.push({x: b.x + 5, y: b.y + b.height});
+    if (b.trail.length > 8) b.trail.shift();
+    if (b.y < -50) bullets.splice(i, 1);
+  });
+
+  // Enemies spawn (waves)
+  if (Math.random() < 0.02 + wave * 0.005) {
+    enemies.push({
+      x: Math.random() * (canvas.width - 80),
+      y: -80,
+      width: 70,
+      height: 70,
+      speed: 2 + wave * 0.3,
+      hp: 1 + Math.floor(wave / 5)
+    });
+  }
+
+  // Enemies move & collision
+  enemies.forEach((e, i) => {
+    e.y += e.speed;
+    if (e.y > canvas.height + 50) {
+      enemies.splice(i, 1);
+      lives--;
+      livesEl.textContent = '❤️'.repeat(lives);
+      createParticles(canvas.width/2, canvas.height/2, '#ff0000', 20); // Shake effect
+      return;
+    }
+
+    // Bullet hits enemy
+    bullets.forEach((b, j) => {
+      if (b.x < e.x + e.width && b.x + b.width > e.x &&
+          b.y < e.y + e.height && b.y + b.height > e.y) {
+        e.hp--;
+        bullets.splice(j, 1);
+        if (e.hp <= 0) {
+          score += 100 * wave;
+          createParticles(e.x + e.width/2, e.y + e.height/2, '#ffff00', 30);
+          enemies.splice(i, 1);
+          // Rare powerup
+          if (Math.random() < 0.1) {
+            powerups.push({x: e.x, y: e.y, type: 'rapid'});
+          }
+        }
+      }
+    });
+
+    // Enemy hits player
+    if (e.x < player.x + player.width && e.x + e.width > player.x &&
+        e.y < player.y + player.height && e.y + e.height > player.y) {
+      lives--;
+      livesEl.textContent = '❤️'.repeat(lives);
+      createParticles(player.x + player.width/2, player.y + player.height/2, '#ff0000', 40);
+      enemies.splice(i, 1);
+    }
+  });
+
+  // Powerups
+  powerups.forEach((p, i) => {
+    p.y += 3;
+    if (p.y > canvas.height) powerups.splice(i, 1);
+    if (p.x < player.x + player.width && p.x + 20 > player.x &&
+        p.y < player.y + player.height && p.y + 20 > player.y) {
+      rapidFire = true;
+      shotDelay = 80;
+      setTimeout(() => { rapidFire = false; shotDelay = 200; }, 5000);
+      powerups.splice(i, 1);
+      createParticles(p.x + 10, p.y + 10, '#00ff88', 25);
+    }
+  });
+
+  // Particles
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2;
+    p.life -= p.decay;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+
+  // Wave up
+  if (enemies.length === 0 && Math.random() < 0.01) {
+    wave++;
+    waveEl.textContent = `Wave: ${wave}`;
+  }
+
+  // Game over
+  if (lives <= 0) {
+    gameRunning = false;
+    finalScoreEl.textContent = Math.floor(score);
+    if (score > highscore) {
+      highscore = Math.floor(score);
+      localStorage.setItem('kongTofuHighscore', highscore);
+    }
+    gameOverEl.style.display = 'flex';
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Glow background stars
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  for (let i = 0; i < 50; i++) {
+    let starX = (Date.now() * 0.01 + i * 100) % canvas.width;
+    let starY = (i * 37) % canvas.height;
+    ctx.beginPath();
+    ctx.arc(starX, starY, 2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Player: Kong Tofu (silky white king tofu with crown glow)
+  ctx.shadowColor = '#fff';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#f8f8ff';
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.shadowBlur = 0;
+  // Crown
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(player.x + 20, player.y - 15, 40, 12);
+  ctx.fillStyle = '#ff4500';
+  ctx.fillRect(player.x + 25, player.y - 25, 10, 10);
+  ctx.fillRect(player.x + 45, player.y - 25, 10, 10);
+
+  // Bullets with trail & glow
+  bullets.forEach(b => {
+    // Trail
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 15;
+    b.trail.forEach((t, i) => {
+      ctx.fillStyle = `rgba(0, 255, 255, ${i / b.trail.length * 0.5})`;
+      ctx.fillRect(t.x, t.y, 8, 12);
+    });
+    // Bullet
+    ctx.fillStyle = '#00ffff';
+    ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.shadowBlur = 0;
+  });
+
+  // Enemies: Chezz Burgers (dripping cheese, angry eyes)
+  enemies.forEach(e => {
+    ctx.shadowColor = '#ff4500';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#8b4513'; // Bun
+    ctx.fillRect(e.x, e.y, e.width, e.height);
+    ctx.fillStyle = '#ffa500'; // Patty
+    ctx.fillRect(e.x + 10, e.y + 15, e.width - 20, 25);
+    ctx.fillStyle = '#ffff00'; // Chezz
+    ctx.fillRect(e.x + 15, e.y + 10, e.width - 30, 35);
+    ctx.shadowBlur = 0;
+    // Eyes
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(e.x + 15, e.y + 20, 8, 8);
+    ctx.fillRect(e.x + e.width - 23, e.y + 20, 8, 8);
+    // HP bar
+    if (e.hp > 1) {
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(e.x, e.y - 10, e.width * (e.hp / (1 + Math.floor(wave / 5))), 5);
+    }
+  });
+
+  // Powerups (star)
+  powerups.forEach(p => {
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(p.x + 10, p.y + 10, 12, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // Particles (fire/explosions)
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Screen shake on low lives
+  if (lives < 2) {
+    ctx.save();
+    ctx.translate(Math.sin(Date.now() * 0.01) * 5, Math.cos(Date.now() * 0.015) * 3);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function restart() {
+  score = 0;
+  lives = 3;
+  wave = 1;
+  bullets = [];
+  enemies = [];
+  particles = [];
+  powerups = [];
+  player.x = canvas.width/2 - 40;
+  scoreEl.textContent = 0;
+  livesEl.textContent = '❤️❤️❤️';
+  waveEl.textContent = 'Wave: 1';
+  gameRunning = true;
+  gameOverEl.style.display = 'none';
+  loop();
+}
+
+loop();
+</script>
+</body>
+</html>
